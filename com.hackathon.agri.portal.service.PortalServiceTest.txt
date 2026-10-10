@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.hackathon.agri.portal.service.PortalServiceTest
+-------------------------------------------------------------------------------
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.957 s -- in com.hackathon.agri.portal.service.PortalServiceTest

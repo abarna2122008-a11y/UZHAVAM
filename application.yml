@@ -1,0 +1,22 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway-service
+  cloud:
+    gateway:
+      routes:
+        - id: portal-service
+          uri: ${PORTAL_SERVICE_URL:http://portal-service:8081}
+          predicates:
+            - Path=/api/portal/**
+        - id: advisory-service
+          uri: ${ADVISORY_SERVICE_URL:http://advisory-service:8082}
+          predicates:
+            - Path=/api/advisory/**
+
+app:
+  security:
+    username: ${GATEWAY_USER:farmer}
+    password: ${GATEWAY_PASSWORD:change-this-gateway-password}

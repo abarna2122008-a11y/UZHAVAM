@@ -1,0 +1,96 @@
+services:
+  postgres-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: agridb
+      POSTGRES_USER: ${POSTGRES_USER:-agri_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-this-postgres-password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - farmer-network
+    restart: unless-stopped
+
+  portal-service:
+    build:
+      context: .
+      dockerfile: agri-portal-service/Dockerfile
+    environment:
+      SERVER_PORT: 8081
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/agridb
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-agri_user}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-change-this-postgres-password}
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    networks:
+      - farmer-network
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8081'"]
+      interval: 10s
+      timeout: 4s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  advisory-service:
+    build:
+      context: .
+      dockerfile: agri-advisory-service/Dockerfile
+    environment:
+      SERVER_PORT: 8082
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-local-dev-key-not-configured}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.0-flash}
+      PORTAL_SERVICE_URL: http://portal-service:8081
+    depends_on:
+      portal-service:
+        condition: service_healthy
+    networks:
+      - farmer-network
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8082'"]
+      interval: 10s
+      timeout: 4s
+      retries: 10
+      start_period: 40s
+    restart: unless-stopped
+
+  api-gateway-service:
+    build:
+      context: .
+      dockerfile: api-gateway-service/Dockerfile
+    environment:
+      SERVER_PORT: 8080
+      GATEWAY_USER: ${GATEWAY_USER:-farmer}
+      GATEWAY_PASSWORD: ${GATEWAY_PASSWORD:-change-this-gateway-password}
+      PORTAL_SERVICE_URL: http://portal-service:8081
+      ADVISORY_SERVICE_URL: http://advisory-service:8082
+    depends_on:
+      portal-service:
+        condition: service_healthy
+      advisory-service:
+        condition: service_healthy
+    ports:
+      - "${GATEWAY_PORT:-8080}:8080"
+    networks:
+      - farmer-network
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8080'"]
+      interval: 10s
+      timeout: 4s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+networks:
+  farmer-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
