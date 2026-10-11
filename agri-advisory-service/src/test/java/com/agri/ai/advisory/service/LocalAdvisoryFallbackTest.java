@@ -26,10 +26,19 @@ class LocalAdvisoryFallbackTest {
     }
 
     @Test
-    void givesGeneralGuidanceForOtherQuestions() {
+    void refusesUnrecognizedQuestionInsteadOfReturningUnrelatedGuidance() {
         String answer = fallback.answer("How do I grow beans?", "Hindi");
 
-        assertTrue(answer.contains("Gemini AI अभी कॉन्फ़िगर नहीं है"));
-        assertTrue(answer.contains("मिट्टी"));
+        assertTrue(answer.contains("इस प्रश्न का भरोसेमंद उत्तर"));
+        assertTrue(answer.contains("असंबंधित सलाह"));
+    }
+
+    @Test
+    void answersApricotDefinitionQuestionWithRelevantFacts() {
+        String answer = fallback.answer("whats an apricot", "English");
+
+        assertTrue(answer.contains("small stone fruit"));
+        assertTrue(answer.contains("peaches and plums"));
+        assertTrue(answer.contains("cooler mountain regions"));
     }
 }

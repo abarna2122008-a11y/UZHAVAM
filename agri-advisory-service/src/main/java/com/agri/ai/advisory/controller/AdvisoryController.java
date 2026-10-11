@@ -237,7 +237,8 @@ public class AdvisoryController {
         String answer;
         if (!plantVisionService.isConfigured()) {
             answer = localAdvisoryFallback.answer(request.getQuery(), language);
-            sources.add("[LOCAL-GENERAL-GUIDANCE] Gemini is not configured; this is a limited local checklist, not an AI-generated or verified crop-specific recommendation.");
+            sources.clear();
+            sources.add("[LOCAL-GENERAL-GUIDANCE] Gemini is not configured; this response is a built-in definition or checklist, not an AI-generated crop-specific recommendation.");
         } else {
             try {
                 answer = chatClient.prompt()

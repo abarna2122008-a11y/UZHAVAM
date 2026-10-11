@@ -24,9 +24,10 @@ class AdvisoryControllerTest {
                 mock(RestTemplate.class), "http://localhost:8081");
 
         var response = controller.process(new AdvisoryRequest(
-                "How do I maintain coconut trees?", "English", ""));
+                "whats an apricot", "English", ""));
 
-        assertTrue(response.getResponse().contains("coconut-care guidance"));
-        assertTrue(response.getSources().stream().anyMatch(source -> source.contains("Gemini is not configured")));
+        assertTrue(response.getResponse().contains("small stone fruit"));
+        assertTrue(response.getSources().size() == 1);
+        assertTrue(response.getSources().get(0).contains("Gemini is not configured"));
     }
 }
