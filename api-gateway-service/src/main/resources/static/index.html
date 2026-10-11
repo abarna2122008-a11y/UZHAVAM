@@ -3228,9 +3228,13 @@
                 })});
                 pending.remove();
                 addMessage(answer.response, "assistant", answer.sources);
-                renderChatHistory(await api("/api/portal/history"));
                 speak(answer.response);
-                await loadDashboard();
+                try {
+                    renderChatHistory(await api("/api/portal/history"));
+                    await loadDashboard();
+                } catch (historyError) {
+                    notify("Answer received, but farm history could not refresh: " + historyError.message, true);
+                }
             } catch (error) {
                 pending.remove();
                 addMessage(error.message, "assistant");
