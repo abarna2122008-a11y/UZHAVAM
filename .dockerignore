@@ -1,12 +1,5 @@
-target/
-*.jar
-.mvn/
-.idea/
-.git/
-*.iml
-HELP.md
-docker-compose.yml
+**/target
+.git
+.idea
 .env
-Dockerfile
-README.md
-.env.example
+*.iml

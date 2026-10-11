@@ -1,95 +1,62 @@
-# உழவம் (Uzhavam)
+# Fieldwise Enterprise Backend
 
-Uzhavam is a small farm-management project I built to bring a few everyday tools into one place. Farmers can save farm details, keep crop plans and reminders, record income and expenses, and ask agriculture questions. The site supports English, Tamil, Hindi, Malayalam, Kannada, Telugu, and Marathi.
+Java 21, Spring Boot 3.3.13, Spring Cloud Gateway, Spring Security, PostgreSQL, and Spring AI in a four-service REST architecture:
 
-This is a hackathon prototype, not a finished farming service. The weather shown is sample data, and the advice depends on having a Gemini API key configured.
-
-## Run it with Docker
-
-You will need Java 21, Maven, and Docker Desktop.
-
-1. Start Docker Desktop.
-2. Copy `.env.example` to `.env`.
-3. Add your Google AI Studio key as `GOOGLE_API_KEY` in `.env`. Set the gateway username and password there too.
-4. Open a terminal in this folder and run:
-
-   ```powershell
-   docker compose up --build
-   ```
-
-5. Go to [http://localhost:8080](http://localhost:8080) and sign in using the gateway credentials from `.env`.
-
-To stop the services, press `Ctrl+C` in the terminal. You can also run `docker compose down`.
-
-## What is in the project?
-
-There are three Spring Boot services:
-
-| Service | Port | What it does |
+| Service | Container port | Responsibility |
 | --- | ---: | --- |
-| API Gateway | 8080 | Serves the web page, handles sign-in, and forwards API requests |
-| Portal | 8081 | Saves farm details, crop plans, reminders, transactions, and chat history |
-| Advisory | 8082 | Prepares agriculture advice and calls Gemini |
-| PostgreSQL | 5432 (internal) | Stores application data when running with Docker Compose |
+| API Gateway | 8080 | HTTP Basic authentication and routing |
+| Agri Portal | 8081 | Persist interaction logs in PostgreSQL |
+| Agri Advisory | 8082 | Language-directed grounded response generation and portal logging |
+| Hardware & Vision | 8083 | ESP32 telemetry and YOLO/OpenCV detection metadata |
+| PostgreSQL | 5432 | Persistent interaction history |
 
-The browser talks to the Gateway. The Gateway routes portal requests to the Portal service and advice requests to the Advisory service. The Portal uses Spring Data JPA to work with the database. In the Docker setup, the services and PostgreSQL run as separate containers on the same Compose network.
+Only the gateway is published to the host. Services and PostgreSQL are isolated on the Compose bridge network.
 
-## Voice assistant
+## Start with Docker Compose
 
-The microphone button in the lower-right corner opens the voice assistant. Pick farm details, a crop plan, a reminder, an income/expense entry, or a question. It asks for the information one field at a time, reads back what it heard, and gives you a chance to review before saving. You can skip optional fields.
+1. Copy `.env.example` to `.env` and set strong passwords and a Google AI Studio API key.
+2. Run `docker compose up --build` from this directory.
+3. Wait for the health checks, then open the API demo console at `http://localhost:8080` or call the APIs directly through the same gateway.
 
-Voice input needs browser speech-recognition support and microphone permission. Chrome or Edge should work best. If speech recognition is unavailable, use the regular forms. On the chat page, the microphone can also fill in a question; check the transcription before sending it.
+The demo console lets you send ESP32 telemetry, read the current hardware context, request grounded advice, and inspect saved interaction history. Enter the configured gateway username/password in the console; these credentials are sent using HTTP Basic to the gateway and are not saved by the page.
 
-## Market and scheme links
-
-The market and scheme pages link to outside information, including e-NAM, Agmarknet, PM-KISAN, PMFBY, and Kisan Credit Card resources. They are there to help farmers find official or public information. Uzhavam does not provide live market prices or decide whether someone qualifies for a scheme, insurance, or loan.
-
-## Advice and sample data
-
-The Advisory service sends the question and available farm context to Gemini. It also uses crop and soil notes and clearly labels its district weather as a demo estimate. The weather is not live, and the prototype cannot verify local prices, diagnoses, product doses, or scheme eligibility. Check important decisions with a local agricultural officer or another reliable source.
-
-Set `GOOGLE_API_KEY` before trying Gemini-backed responses. Do not put a real key in the source code or commit your `.env` file.
-
-## Run locally without Docker
-
-These commands use an in-memory H2 database for the Portal. Start each service in its own PowerShell terminal, from the project folder. H2 data is temporary and is lost when the Portal stops.
-
-Portal:
+For example, with PowerShell:
 
 ```powershell
-$env:SPRING_DATASOURCE_URL = "jdbc:h2:mem:agridb;DB_CLOSE_DELAY=-1"
-$env:SPRING_DATASOURCE_USERNAME = "sa"
-$env:SPRING_DATASOURCE_PASSWORD = ""
-mvn -pl agri-portal-service spring-boot:run
+$pair = "farmer:your-gateway-password"
+$basic = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes($pair))
+$headers = @{ Authorization = "Basic $basic" }
+
+Invoke-RestMethod -Uri http://localhost:8080/api/hardware/telemetry `
+  -Method Post -Headers $headers -ContentType application/json `
+  -Body '{"sensorId":"ESP32-Node1","soilMoisture":42,"nitrogen":"low","location":"Thanjavur"}'
+
+Invoke-RestMethod -Uri http://localhost:8080/api/advisory/process `
+  -Method Post -Headers $headers -ContentType application/json `
+  -Body '{"query":"How should I manage rice pests?","language":"Tamil","location":"Thanjavur"}'
 ```
 
-Advisory:
+The advisory service retrieves a small, clearly labeled crop-note dataset, district forecast fixtures, and latest in-memory hardware/vision context, then passes that evidence to Spring AI `ChatClient`. Gemini is accessed through its OpenAI-compatible API using Spring AI's OpenAI starter, which keeps this project on the requested Spring Boot 3.3.x line. Set `GOOGLE_API_KEY` for generated responses. Compose starts the API even without a key, but Gemini-backed requests require a valid key.
 
-```powershell
-$env:PORTAL_SERVICE_URL = "http://localhost:8081"
-$env:GOOGLE_API_KEY = "your-google-ai-studio-key"
-mvn -pl agri-advisory-service spring-boot:run
-```
+`POST /api/portal/log` persists `farmerQuery`, `detectedLanguage`, `aiResponse`, UTC `timestamp`, and `sourceReferences`. `GET /api/portal/history` returns saved interactions. The advisory service logs successful generated answers before returning them.
 
-Gateway:
+Hardware endpoints:
 
-```powershell
-$env:GATEWAY_USER = "farmer"
-$env:GATEWAY_PASSWORD = "choose-a-local-demo-password"
-$env:PORTAL_SERVICE_URL = "http://localhost:8081"
-$env:ADVISORY_SERVICE_URL = "http://localhost:8082"
-mvn -pl api-gateway-service spring-boot:run
-```
+- `POST /api/hardware/telemetry` accepts sensor ID, soil moisture percent, nitrogen level, and location.
+- `POST /api/hardware/vision` accepts image ID, crop, location, and detection bounding boxes.
+- `GET /api/hardware/context?location=Thanjavur` returns the latest matching metadata for advisory grounding.
 
-For persistent data, use the PostgreSQL setup in Docker Compose instead of H2.
+Hardware readings and vision metadata are in-memory for this PoC and reset when that container is recreated. Replace them with a durable telemetry store/message broker for production. Forecast and crop notes are demo fixtures, not live official data; the generated response is instructed to cite evidence IDs and disclose missing evidence.
 
-## Build checks
+## Local build
 
-From the project folder:
+From this directory, run `mvn test` or `mvn package`. Open the root `pom.xml` in IntelliJ IDEA to import the multi-module project.
 
-```powershell
-mvn clean package
-docker compose config --quiet
-```
+To preview the console without Docker, start `HardwareVisionApplication` on port 8083 and `ApiGatewayApplication` on port 8080. For local overrides, set the gateway environment variables `GATEWAY_USER`, `GATEWAY_PASSWORD`, and `HARDWARE_SERVICE_URL=http://localhost:8083`. The console and hardware demo can then be opened at `http://localhost:8080`; portal history and AI generation additionally need PostgreSQL and the advisory service running.
 
-Before sharing a deployment, replace the example gateway credentials and keep `.env` private.
+## Security and deployment notes
+
+- Set unique strong credentials in `.env`; never commit `.env`.
+- The default Compose credentials are for local development only.
+- The gateway protects all proxied routes with HTTP Basic. Use TLS at the ingress/reverse proxy before exposing it beyond a trusted development network.
+- Backend containers have no published host ports. Keep them on a private network; add service-to-service identity and authorization before production.

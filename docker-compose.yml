@@ -1,36 +1,36 @@
 services:
   postgres-db:
-    image: postgres:15-alpine
+    image: postgres:15.10-alpine
     environment:
       POSTGRES_DB: agridb
       POSTGRES_USER: ${POSTGRES_USER:-agri_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-this-postgres-password}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-this-db-password}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - agri-backend
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
       interval: 10s
       timeout: 5s
       retries: 10
-      start_period: 10s
-    networks:
-      - farmer-network
+      start_period: 15s
     restart: unless-stopped
 
-  portal-service:
+  agri-portal-service:
     build:
       context: .
       dockerfile: agri-portal-service/Dockerfile
     environment:
-      SERVER_PORT: 8081
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/agridb
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-agri_user}
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-change-this-postgres-password}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-change-this-db-password}
+      SERVER_PORT: 8081
     depends_on:
       postgres-db:
         condition: service_healthy
     networks:
-      - farmer-network
+      - agri-backend
     healthcheck:
       test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8081'"]
       interval: 10s
@@ -39,7 +39,29 @@ services:
       start_period: 30s
     restart: unless-stopped
 
-  advisory-service:
+  farmer-workspace-service:
+    build:
+      context: .
+      dockerfile: farmer-workspace-service/Dockerfile
+    environment:
+      SERVER_PORT: 8083
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/agridb
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-agri_user}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-change-this-db-password}
+    networks:
+      - agri-backend
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8083'"]
+      interval: 10s
+      timeout: 4s
+      retries: 10
+      start_period: 35s
+    restart: unless-stopped
+
+  agri-advisory-service:
     build:
       context: .
       dockerfile: agri-advisory-service/Dockerfile
@@ -47,12 +69,15 @@ services:
       SERVER_PORT: 8082
       GOOGLE_API_KEY: ${GOOGLE_API_KEY:-local-dev-key-not-configured}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.0-flash}
-      PORTAL_SERVICE_URL: http://portal-service:8081
+      FARMER_WORKSPACE_URL: http://farmer-workspace-service:8083
+      PORTAL_SERVICE_URL: http://agri-portal-service:8081
     depends_on:
-      portal-service:
+      agri-portal-service:
+        condition: service_healthy
+      farmer-workspace-service:
         condition: service_healthy
     networks:
-      - farmer-network
+      - agri-backend
     healthcheck:
       test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8082'"]
       interval: 10s
@@ -61,25 +86,28 @@ services:
       start_period: 40s
     restart: unless-stopped
 
-  api-gateway-service:
+  api-gateway:
     build:
       context: .
-      dockerfile: api-gateway-service/Dockerfile
+      dockerfile: api-gateway/Dockerfile
     environment:
       SERVER_PORT: 8080
       GATEWAY_USER: ${GATEWAY_USER:-farmer}
-      GATEWAY_PASSWORD: ${GATEWAY_PASSWORD:-change-this-gateway-password}
-      PORTAL_SERVICE_URL: http://portal-service:8081
-      ADVISORY_SERVICE_URL: http://advisory-service:8082
+      GATEWAY_PASSWORD: ${GATEWAY_PASSWORD:-change-this-dev-password}
+      PORTAL_SERVICE_URL: http://agri-portal-service:8081
+      ADVISORY_SERVICE_URL: http://agri-advisory-service:8082
+      FARMER_WORKSPACE_URL: http://farmer-workspace-service:8083
     depends_on:
-      portal-service:
+      agri-portal-service:
         condition: service_healthy
-      advisory-service:
+      agri-advisory-service:
+        condition: service_healthy
+      farmer-workspace-service:
         condition: service_healthy
     ports:
       - "${GATEWAY_PORT:-8080}:8080"
     networks:
-      - farmer-network
+      - agri-backend
     healthcheck:
       test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8080'"]
       interval: 10s
@@ -89,7 +117,7 @@ services:
     restart: unless-stopped
 
 networks:
-  farmer-network:
+  agri-backend:
     driver: bridge
 
 volumes:
