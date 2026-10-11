@@ -531,6 +531,16 @@
                     <div class="form-actions"><button class="button light" id="addMarketOffer" type="button">＋ Add selling option</button><button class="button" id="compareMarketOffers" type="button">Compare net proceeds</button></div>
                     <div id="marketComparison" class="table-wrap" style="margin-top:12px" aria-live="polite"></div>
                 </article>
+                <article class="card" style="margin-top:16px">
+                    <div class="card-heading"><div><h2>Spoilage Clock · travel feasibility</h2><p class="subhead">Compare your produce's remaining quality window with your estimated travel time; this is a planning prompt, not a shelf-life measurement.</p></div></div>
+                    <div class="form-grid">
+                        <div class="field"><label for="spoilageWindow">Quality window remaining (hours)</label><input id="spoilageWindow" type="number" min="0.1" step="0.1" value="12"></div>
+                        <div class="field"><label for="spoilageTravel">Estimated travel time (hours)</label><input id="spoilageTravel" type="number" min="0" step="0.1" value="2"></div>
+                        <div class="field"><label for="spoilageBuffer">Handling / queue buffer (hours)</label><input id="spoilageBuffer" type="number" min="0" step="0.1" value="1"></div>
+                    </div>
+                    <div class="form-actions"><button class="button" id="checkSpoilage" type="button">Check travel window</button></div>
+                    <div id="spoilageResult" class="weather-large" aria-live="polite">Enter your own quality window and travel estimate.</div>
+                </article>
             </section>
 
             <section class="page" id="page-reloop">
@@ -552,7 +562,7 @@
                             <div class="field"><label for="reloopQuantity">Available quantity</label><input id="reloopQuantity" type="number" min="0.001" step="0.001" required></div>
                             <div class="field"><label for="reloopUnit">Unit</label><select id="reloopUnit"><option>kg</option><option>quintal</option><option>tonne</option><option>piece</option><option>bundle</option><option>bag</option></select></div>
                             <div class="field"><label for="reloopPrice">Asking price (₹, optional)</label><input id="reloopPrice" type="number" min="0" step="0.01"></div>
-                            <div class="field"><label for="reloopAvailable">Available from</label><input id="reloopAvailable" type="date"></div>
+                            <div class="field"><label for="reloopAvailable">Available from (set a future date for planned surplus)</label><input id="reloopAvailable" type="date"></div>
                             <div class="field"><label for="reloopSeller">Seller / contact name</label><input id="reloopSeller" required maxlength="120"></div>
                             <div class="field"><label for="reloopPhone">Phone (optional; shown to browsers)</label><input id="reloopPhone" maxlength="30"></div>
                             <div class="field"><label for="reloopDistrict">District</label><input id="reloopDistrict" required maxlength="120"></div>
@@ -560,6 +570,7 @@
                         </div><div class="form-actions"><button class="button" type="submit">Publish listing</button></div></form>
                     </article>
                 </div>
+                <article class="card" style="margin-top:16px"><div class="card-heading"><div><h2>ReLoop impact</h2><p class="subhead">Quantity reported by both named pickup participants; this is not third-party verification.</p></div></div><div id="reloopImpact" class="weather-large" aria-live="polite">Loading pickup records…</div></article>
                 <article class="card" style="margin-top:16px"><div class="card-heading"><div><h2>Second-Life reviewed catalogue</h2><p class="subhead">Possible uses only—check local suitability, contamination and safety before reuse.</p></div></div><div id="reloopCatalogue" class="grid link-grid"></div></article>
             </section>
 
@@ -619,6 +630,21 @@
                         <div id="cashForecastResult" class="weather-large" style="margin-top:12px" aria-live="polite">Enter your own estimates and calculate a cash-flow scenario.</div>
                         <div class="note">This is a simple arithmetic scenario, not a loan recommendation, lender offer, or guaranteed forecast. Check dates and seasonal assumptions before borrowing.</div>
                     </article>
+                </div>
+                <div class="form-actions" style="margin-top:14px"><button class="button light" id="downloadCreditPassport" type="button">Download Farm Credit Passport</button></div>
+                <p class="task-meta">Exports your entered profile, season outcomes, transactions and harvest deals as JSON for you to review and share. Records are self-reported, not a credit score, lender approval, or verified identity.</p>
+                <div class="grid two-col" style="margin-top:16px">
+                    <article class="card"><div class="card-heading"><div><h2>Profit Before Planting · break-even estimate</h2><p class="subhead">Enter assumptions before planting; all figures are a simple scenario, not an expected yield guarantee.</p></div></div>
+                        <div class="form-grid">
+                            <div class="field"><label for="planCost">Estimated total cultivation cost (₹)</label><input id="planCost" type="number" min="0" step="0.01" value="0"></div>
+                            <div class="field"><label for="planYield">Expected harvest (quintals)</label><input id="planYield" type="number" min="0.001" step="0.001" value="1"></div>
+                            <div class="field"><label for="planPrice">Expected price per quintal (₹)</label><input id="planPrice" type="number" min="0" step="0.01" value="0"></div>
+                            <div class="field"><label for="planSellingCosts">Selling / transport costs (₹)</label><input id="planSellingCosts" type="number" min="0" step="0.01" value="0"></div>
+                        </div>
+                        <div class="form-actions"><button class="button" id="calculatePlanting" type="button">Calculate scenario</button></div>
+                        <div id="plantingResult" class="weather-large" aria-live="polite">Enter assumptions to calculate break-even and estimated margin.</div>
+                    </article>
+                    <article class="card"><div class="card-heading"><div><h2>Glut Alert + CropCrowd</h2><p class="subhead">Counts crop plans saved in this shared demo workspace only; it is not a district planting survey or price prediction.</p></div></div><div id="cropCrowdSummary" class="weather-large" aria-live="polite">Loading saved crop plans…</div></article>
                 </div>
                 <article class="card" style="margin-top:16px"><div class="card-heading"><h2>Season Rewind · compare alternative decisions</h2></div><div class="form-grid"><div class="field"><label for="rewindActualId">Past outcome</label><select id="rewindActualId"></select></div><div class="field"><label for="rewindOfferPrice">Alternative selling price per unit (₹)</label><input id="rewindOfferPrice" type="number" min="0" step="0.01"></div><div class="field"><label for="rewindExtraCost">Alternative transport / fees (₹)</label><input id="rewindExtraCost" type="number" min="0" step="0.01" value="0"></div></div><div class="form-actions"><button class="button light" id="runSeasonRewind" type="button">Compare entered scenario</button></div><div id="seasonRewindResult" style="margin-top:12px"></div><p class="task-meta">Uses stored yield and your alternative price/fees; it does not model quality loss, market demand, or price changes.</p></article>
             </section>
@@ -1861,11 +1887,17 @@
             if ($("reloopSearch").value.trim()) query.set("search", $("reloopSearch").value.trim());
             if ($("reloopDistrictFilter").value.trim()) query.set("district", $("reloopDistrictFilter").value.trim());
             if ($("reloopTypeFilter").value) query.set("type", $("reloopTypeFilter").value);
-            const [listings, catalogue] = await Promise.all([
+            const [listings, catalogue, impact] = await Promise.all([
                 api("/api/portal/reloop" + (query.size ? "?" + query : "")),
-                api("/api/portal/reloop/catalogue")
+                api("/api/portal/reloop/catalogue"),
+                api("/api/portal/reloop/impact")
             ]);
             renderReLoopListings(listings);
+            const quantities = Object.entries(impact.quantitiesByUnit || {})
+                .map(([unit, quantity]) => enc(quantity) + " " + enc(unit)).join(" · ");
+            $("reloopImpact").innerHTML = '<strong>' + enc(impact.completedPickups) +
+                ' completed pickup(s)</strong><p>' + (quantities || "No collected quantity recorded yet.") +
+                '</p><p class="task-meta">' + enc(impact.note) + '</p>';
             $("reloopCatalogue").innerHTML = catalogue.map(item =>
                 '<article class="card resource-card"><h3>' + enc(item.material) + '</h3><p>' + enc(item.uses) +
                 '</p><div class="note">' + enc(item.caution) + '</div></article>').join("");
@@ -1891,8 +1923,15 @@
                         '" data-material="' + enc(item.materialName) + '">Express interest / reserve</button>';
                 } else if (item.status === "Reserved") {
                     actions = '<button type="button" class="button light small" data-reloop-status="Available" data-id="' +
-                        enc(item.id) + '">Release reservation</button> <button type="button" class="button small" data-reloop-status="Collected" data-id="' +
-                        enc(item.id) + '">Confirm collected</button>';
+                        enc(item.id) + '">Release reservation</button>' +
+                        '<form class="pickup-confirmation-form" data-pickup-id="' + enc(item.id) + '">' +
+                        '<div class="form-grid"><div class="field"><label>Collected quantity (' + enc(item.unit) + ')</label>' +
+                        '<input name="collectedQuantity" type="number" min="0.001" max="' + enc(item.quantity) +
+                        '" step="0.001" value="' + enc(item.quantity) + '" required></div><div class="field"><label>Seller confirmation name</label>' +
+                        '<input name="sellerConfirmation" maxlength="120" value="' + enc(item.sellerName) + '" required></div>' +
+                        '<div class="field"><label>Buyer confirmation name</label><input name="buyerConfirmation" maxlength="120" value="' +
+                        enc(item.reservedBy || "") + '" required></div></div><button type="submit" class="button small">Record both pickup confirmations</button>' +
+                        '<p class="task-meta">Names are self-reported in this shared demo workspace.</p></form>';
                 }
                 const reservation = item.reservedBy ? '<div class="task-meta">Reserved by ' + enc(item.reservedBy) +
                     (item.reservationPhone ? ' · ' + enc(item.reservationPhone) : "") +
@@ -1979,8 +2018,30 @@
         }
 
         async function loadMemoryPage() {
-            const entries = await api("/api/portal/memory/outcomes");
+            const [entries, dashboard] = await Promise.all([
+                api("/api/portal/memory/outcomes"),
+                api("/api/portal/dashboard")
+            ]);
             renderOutcomeHistory(entries);
+            renderCropCrowd(dashboard.crops || []);
+        }
+
+        function renderCropCrowd(crops) {
+            if (!crops.length) {
+                $("cropCrowdSummary").textContent = "No crop plans saved in this shared demo workspace yet.";
+                return;
+            }
+            const counts = new Map();
+            crops.forEach(crop => {
+                const name = String(crop.cropName || "Unspecified crop").trim();
+                counts.set(name, (counts.get(name) || 0) + 1);
+            });
+            const entries = Array.from(counts.entries()).sort((a, b) => b[1] - a[1]);
+            $("cropCrowdSummary").innerHTML = entries.map(([name, count]) =>
+                '<div class="task-row"><div class="task-main"><strong>' + enc(name) + '</strong><div class="task-meta">' +
+                enc(count) + ' saved plan(s) in this demo workspace' +
+                (count >= 3 ? ' · possible concentration to review' : '') + '</div></div></div>').join("") +
+                '<p class="task-meta">Plan count only; no acreage-weighted supply forecast, local survey, or glut probability is available.</p>';
         }
 
         function renderOutcomeHistory(entries) {
@@ -2155,7 +2216,8 @@
                     '<td>' + enc(sale.agreedQuantityQuintals) + ' q × ' + enc(currency(sale.agreedPricePerQuintal)) + '</td>' +
                     '<td>' + enc(currency(sale.expectedNet)) + '</td>' +
                     '<td>' + (settled ? enc(sale.weighedQuantityQuintals) + ' q<br>' + enc(currency(sale.amountPaid)) + ' paid' : enc(t("Not recorded"))) + '</td>' +
-                    '<td>' + (settled ? enc(currency(sale.actualNet)) + ' net<br>' + enc(currency(sale.balanceDue)) + ' due' : "—") + '</td>' +
+                    '<td>' + (settled ? enc(currency(sale.actualNet)) + ' net<br>' + enc(currency(sale.balanceDue)) + ' due<br><span class="task-meta">Outcome vs estimate: ' +
+                        enc(currency(Number(sale.actualNet) - Number(sale.expectedNet))) + '</span>' : "—") + '</td>' +
                     '<td><form class="settlement-form" data-sale-id="' + enc(sale.id) + '">' +
                     '<input aria-label="Weighed quantity in quintals" type="number" min="0.001" step="0.001" placeholder="Weighed q" value="' + enc(sale.weighedQuantityQuintals ?? "") + '" required>' +
                     '<input aria-label="Final deductions in rupees" type="number" min="0" step="0.01" value="' + enc(sale.deductions) + '" required>' +
@@ -2789,6 +2851,71 @@
                 " · Alternative scenario net: " + currency(alternative) + " · Difference: " +
                 currency(alternative - Number(entry.netOutcome));
         });
+        $("calculatePlanting").addEventListener("click", () => {
+            const cost = Number($("planCost").value);
+            const yieldQuantity = Number($("planYield").value);
+            const price = Number($("planPrice").value);
+            const sellingCosts = Number($("planSellingCosts").value);
+            if (![cost, yieldQuantity, price, sellingCosts].every(Number.isFinite) ||
+                cost < 0 || yieldQuantity <= 0 || price < 0 || sellingCosts < 0) {
+                notify("Enter non-negative costs and price, plus a positive expected harvest.", true);
+                return;
+            }
+            const breakEven = (cost + sellingCosts) / yieldQuantity;
+            const gross = yieldQuantity * price;
+            const net = gross - cost - sellingCosts;
+            $("plantingResult").innerHTML = '<strong>Break-even price: ' + enc(currency(breakEven)) +
+                ' per quintal</strong><p>Estimated sales: ' + enc(currency(gross)) +
+                ' · estimated net after entered costs: ' + enc(currency(net)) + '</p><p>Scenario only; actual yield, quality, prices and costs can differ.</p>';
+        });
+        $("checkSpoilage").addEventListener("click", () => {
+            const windowHours = Number($("spoilageWindow").value);
+            const travelHours = Number($("spoilageTravel").value);
+            const bufferHours = Number($("spoilageBuffer").value);
+            if (![windowHours, travelHours, bufferHours].every(Number.isFinite) ||
+                windowHours <= 0 || travelHours < 0 || bufferHours < 0) {
+                notify("Enter a positive quality window and non-negative travel and handling times.", true);
+                return;
+            }
+            const remaining = windowHours - travelHours - bufferHours;
+            $("spoilageResult").innerHTML = '<strong>' + (remaining >= 0
+                ? 'Your entered route fits within the quality window.'
+                : 'Your entered route exceeds the quality window.') + '</strong><p>' +
+                (remaining >= 0 ? enc(remaining.toFixed(1)) + ' estimated hour(s) remain.' :
+                    enc(Math.abs(remaining).toFixed(1)) + ' estimated hour(s) over the window.') +
+                '</p><p>Use crop-specific handling guidance and verify actual road, queue and storage conditions.</p>';
+        });
+        $("downloadCreditPassport").addEventListener("click", async event => {
+            const button = event.currentTarget;
+            button.disabled = true;
+            try {
+                const [dashboard, outcomes] = await Promise.all([
+                    api("/api/portal/dashboard"),
+                    api("/api/portal/memory/outcomes")
+                ]);
+                const passport = {
+                    generatedAt:new Date().toISOString(),
+                    status:"Farmer-entered prototype record; not identity-verified or lender-verified",
+                    profile:dashboard.profile,
+                    seasonOutcomes:outcomes,
+                    transactions:dashboard.transactions || [],
+                    harvestDeals:dashboard.harvestSales || [],
+                    note:"Review for accuracy and remove private details before sharing. This export is not a credit score or loan recommendation."
+                };
+                const blob = new Blob([JSON.stringify(passport, null, 2)], {type:"application/json"});
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.href = url;
+                link.download = "uzhavam-farm-credit-passport-" + new Date().toISOString().slice(0, 10) + ".json";
+                link.click();
+                URL.revokeObjectURL(url);
+                notify("Farm Credit Passport downloaded. Review it before sharing.");
+            } catch (error) {
+                notify(error.message, true);
+            } finally {
+                button.disabled = false;
+            }
+        });
 
         $("communityForm").addEventListener("submit", async event => {
             event.preventDefault();
@@ -2937,12 +3064,34 @@
             const statusButton = event.target.closest("[data-reloop-status]");
             if (!statusButton) return;
             const status = statusButton.dataset.reloopStatus;
-            if (!confirm(status === "Collected" ? "Confirm the material has been collected?" : "Release this reservation?")) return;
+            if (!confirm("Release this reservation?")) return;
             statusButton.disabled = true;
             api("/api/portal/reloop/" + encodeURIComponent(statusButton.dataset.id) + "/status?status=" + encodeURIComponent(status), {method:"PATCH"})
                 .then(loadReLoopPage)
                 .then(() => notify("ReLoop listing updated."))
                 .catch(error => { notify(error.message, true); statusButton.disabled = false; });
+        });
+        $("reloopListings").addEventListener("submit", async event => {
+            const form = event.target.closest(".pickup-confirmation-form");
+            if (!form) return;
+            event.preventDefault();
+            const button = form.querySelector('button[type="submit"]');
+            button.disabled = true;
+            try {
+                await api("/api/portal/reloop/" + encodeURIComponent(form.dataset.pickupId) + "/collection-confirmation", {
+                    method:"POST",
+                    body:JSON.stringify({
+                        collectedQuantity:Number(form.elements.collectedQuantity.value),
+                        sellerConfirmation:form.elements.sellerConfirmation.value.trim(),
+                        buyerConfirmation:form.elements.buyerConfirmation.value.trim()
+                    })
+                });
+                await loadReLoopPage();
+                notify("Pickup quantity and both participant names recorded. These confirmations are self-reported.");
+            } catch (error) {
+                notify(error.message, true);
+                button.disabled = false;
+            }
         });
         $("closeReservation").addEventListener("click", () => $("reservationDialog").hidden = true);
         $("reservationDialog").addEventListener("click", event => {

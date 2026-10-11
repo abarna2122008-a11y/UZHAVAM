@@ -43,6 +43,13 @@ public class ReLoopListing {
     @Column(length = 30)
     private String reservationPhone;
     private LocalDate pickupDate;
+    @Column(precision = 12, scale = 3)
+    private BigDecimal collectedQuantity;
+    @Column(length = 120)
+    private String sellerPickupConfirmation;
+    @Column(length = 120)
+    private String buyerPickupConfirmation;
+    private Instant collectedAt;
     @Column(nullable = false)
     private Instant createdAt;
 
@@ -78,6 +85,14 @@ public class ReLoopListing {
     public void setReservationPhone(String reservationPhone) { this.reservationPhone = reservationPhone; }
     public LocalDate getPickupDate() { return pickupDate; }
     public void setPickupDate(LocalDate pickupDate) { this.pickupDate = pickupDate; }
+    public BigDecimal getCollectedQuantity() { return collectedQuantity; }
+    public void setCollectedQuantity(BigDecimal collectedQuantity) { this.collectedQuantity = collectedQuantity; }
+    public String getSellerPickupConfirmation() { return sellerPickupConfirmation; }
+    public void setSellerPickupConfirmation(String sellerPickupConfirmation) { this.sellerPickupConfirmation = sellerPickupConfirmation; }
+    public String getBuyerPickupConfirmation() { return buyerPickupConfirmation; }
+    public void setBuyerPickupConfirmation(String buyerPickupConfirmation) { this.buyerPickupConfirmation = buyerPickupConfirmation; }
+    public Instant getCollectedAt() { return collectedAt; }
+    public void setCollectedAt(Instant collectedAt) { this.collectedAt = collectedAt; }
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
 }

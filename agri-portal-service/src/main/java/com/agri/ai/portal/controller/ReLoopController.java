@@ -1,6 +1,7 @@
 package com.agri.ai.portal.controller;
 
 import com.agri.ai.portal.dto.ReLoopListingRequest;
+import com.agri.ai.portal.dto.ReLoopCollectionRequest;
 import com.agri.ai.portal.dto.ReLoopReservationRequest;
 import com.agri.ai.portal.model.ReLoopListing;
 import com.agri.ai.portal.repository.ReLoopListingRepository;
@@ -20,6 +21,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
+import java.math.BigDecimal;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -54,6 +57,19 @@ public class ReLoopController {
                 .filter(item -> category.isEmpty() || item.getMaterialType().equalsIgnoreCase(category))
                 .map(this::listingView)
                 .toList();
+    }
+
+    @GetMapping("/impact")
+    public Map<String, Object> impact() {
+        List<ReLoopListing> collected = listings.findAllByOrderByCreatedAtDesc().stream()
+                .filter(item -> "Collected".equals(item.getStatus()) && item.getCollectedQuantity() != null)
+                .toList();
+        Map<String, BigDecimal> quantitiesByUnit = new LinkedHashMap<>();
+        collected.forEach(item -> quantitiesByUnit.merge(item.getUnit(), item.getCollectedQuantity(), BigDecimal::add));
+        return Map.of(
+                "completedPickups", collected.size(),
+                "quantitiesByUnit", quantitiesByUnit,
+                "note", "Totals use user-entered pickup records and are not independently verified.");
     }
 
     @GetMapping("/catalogue")
@@ -96,11 +112,11 @@ public class ReLoopController {
         ReLoopListing item = listings.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "ReLoop listing not found."));
         String next = status.trim();
-        boolean allowed = ("Available".equals(item.getStatus()) && Set.of("Reserved", "Collected").contains(next))
-                || ("Reserved".equals(item.getStatus()) && Set.of("Available", "Collected").contains(next));
+        boolean allowed = ("Available".equals(item.getStatus()) && "Reserved".equals(next))
+                || ("Reserved".equals(item.getStatus()) && "Available".equals(next));
         if (!allowed) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "A listing can move from Available to Reserved or Collected, or from Reserved back to Available or Collected.");
+                    "A listing can move from Available to Reserved, or from Reserved back to Available. Use pickup confirmation to record collection.");
         }
         item.setStatus(next);
         if ("Available".equals(next)) {
@@ -108,6 +124,26 @@ public class ReLoopController {
             item.setReservationPhone("");
             item.setPickupDate(null);
         }
+        return listingView(listings.save(item));
+    }
+
+    @PostMapping("/{id}/collection-confirmation")
+    public Map<String, Object> confirmCollection(
+            @PathVariable long id,
+            @Valid @RequestBody ReLoopCollectionRequest request) {
+        ReLoopListing item = listings.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "ReLoop listing not found."));
+        if (!"Reserved".equals(item.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only a reserved listing can be confirmed as collected.");
+        }
+        if (request.getCollectedQuantity().compareTo(item.getQuantity()) > 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Collected quantity cannot exceed the listed quantity.");
+        }
+        item.setCollectedQuantity(request.getCollectedQuantity());
+        item.setSellerPickupConfirmation(request.getSellerConfirmation().trim());
+        item.setBuyerPickupConfirmation(request.getBuyerConfirmation().trim());
+        item.setCollectedAt(Instant.now());
+        item.setStatus("Collected");
         return listingView(listings.save(item));
     }
 
@@ -156,6 +192,10 @@ public class ReLoopController {
         result.put("reservedBy", item.getReservedBy());
         result.put("reservationPhone", item.getReservationPhone());
         result.put("pickupDate", item.getPickupDate());
+        result.put("collectedQuantity", item.getCollectedQuantity());
+        result.put("sellerPickupConfirmation", item.getSellerPickupConfirmation());
+        result.put("buyerPickupConfirmation", item.getBuyerPickupConfirmation());
+        result.put("collectedAt", item.getCollectedAt());
         result.put("status", item.getStatus());
         result.put("createdAt", item.getCreatedAt());
         result.put("reuseSuggestions", reuseSuggestions(item.getMaterialName()));
