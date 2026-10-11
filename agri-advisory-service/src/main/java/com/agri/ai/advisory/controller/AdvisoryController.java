@@ -4,6 +4,7 @@ import com.agri.ai.advisory.dto.AdvisoryRequest;
 import com.agri.ai.advisory.dto.AdvisoryResponse;
 import com.agri.ai.advisory.dto.PlantHealthAssessment;
 import com.agri.ai.advisory.dto.PlantDiagnosisReport;
+import com.agri.ai.advisory.service.LocalAdvisoryFallback;
 import com.agri.ai.advisory.service.PlantVisionService;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.validation.Valid;
@@ -66,16 +67,19 @@ public class AdvisoryController {
 
     private final ChatClient chatClient;
     private final PlantVisionService plantVisionService;
+    private final LocalAdvisoryFallback localAdvisoryFallback;
     private final RestTemplate restTemplate;
     private final String portalServiceUrl;
 
     public AdvisoryController(
             ChatClient.Builder chatClientBuilder,
             PlantVisionService plantVisionService,
+            LocalAdvisoryFallback localAdvisoryFallback,
             RestTemplate restTemplate,
             @Value("${services.portal-url:http://localhost:8081}") String portalServiceUrl) {
         this.chatClient = chatClientBuilder.build();
         this.plantVisionService = plantVisionService;
+        this.localAdvisoryFallback = localAdvisoryFallback;
         this.restTemplate = restTemplate;
         this.portalServiceUrl = portalServiceUrl;
     }
@@ -172,6 +176,9 @@ public class AdvisoryController {
     @PostMapping("/process")
     public AdvisoryResponse process(@Valid @RequestBody AdvisoryRequest request) {
         String language = request.getLanguage().trim();
+        if (!SUPPORTED_LANGUAGES.contains(language)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Choose one of the supported languages.");
+        }
         String location = request.getLocation() == null || request.getLocation().isBlank()
                 ? "not provided" : request.getLocation().trim();
         String category = classify(request.getQuery());
@@ -227,17 +234,32 @@ public class AdvisoryController {
                 %s
                 """.formatted(language, category, location, String.join("\n", sourcesFor(category)), weather, farmRecords);
 
-        try {
-            String answer = chatClient.prompt()
-                    .system(systemPrompt)
-                    .user(request.getQuery())
-                    .call()
-                    .content();
-            if (answer == null || answer.isBlank()) {
-                throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "AI provider returned an empty answer.");
+        String answer;
+        if (!plantVisionService.isConfigured()) {
+            answer = localAdvisoryFallback.answer(request.getQuery(), language);
+            sources.add("[LOCAL-GENERAL-GUIDANCE] Gemini is not configured; this is a limited local checklist, not an AI-generated or verified crop-specific recommendation.");
+        } else {
+            try {
+                answer = chatClient.prompt()
+                        .system(systemPrompt)
+                        .user(request.getQuery())
+                        .call()
+                        .content();
+                if (answer == null || answer.isBlank()) {
+                    throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Gemini returned an empty answer.");
+                }
+            } catch (NonTransientAiException exception) {
+                log.warn("Gemini rejected the advisory request: {}", exception.getMessage());
+                throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
+                        "Gemini rejected the request. Check that GOOGLE_API_KEY is valid and GEMINI_MODEL is available.", exception);
+            } catch (TransientAiException exception) {
+                throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                        "Gemini is temporarily unavailable. Please try again shortly.", exception);
             }
-            AdvisoryResponse response = new AdvisoryResponse(
-                    request.getQuery(), language, category, answer.trim(), sources);
+        }
+        AdvisoryResponse response = new AdvisoryResponse(
+                request.getQuery(), language, category, answer.trim(), sources);
+        try {
             restTemplate.postForLocation(
                     portalServiceUrl + "/api/portal/log",
                     Map.of(
@@ -245,17 +267,13 @@ public class AdvisoryController {
                             "detectedLanguage", language,
                             "aiResponse", response.getResponse(),
                             "sourceReferences", response.getSources()));
-            return response;
-        } catch (NonTransientAiException exception) {
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
-                    "Gemini could not generate an answer. Check the API key and try again.", exception);
-        } catch (TransientAiException exception) {
-            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
-                    "Gemini is temporarily unavailable. Please try again shortly.", exception);
         } catch (RestClientException exception) {
-            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
-                    "Interaction history is temporarily unavailable.", exception);
+            log.warn("Advisory answer was generated but could not be saved to Portal history.", exception);
+            List<String> responseSources = response.getSources();
+            responseSources.add("[PORTAL-HISTORY] This answer could not be saved to conversation history.");
+            response.setSources(responseSources);
         }
+        return response;
     }
 
     @GetMapping("/weather")
@@ -419,6 +437,8 @@ public class AdvisoryController {
             selected.add(AGRICULTURE_NOTES.get(4));
         } else if ("harvest and storage".equals(category)) {
             selected.add(AGRICULTURE_NOTES.get(6));
+        } else if ("coconut care".equals(category)) {
+            selected.add(AGRICULTURE_NOTES.get(9));
         } else {
             selected.add(AGRICULTURE_NOTES.get(0));
             selected.add(AGRICULTURE_NOTES.get(2));
@@ -437,6 +457,7 @@ public class AdvisoryController {
         if (containsAny(text, "irrigation", "water", "watering", "நீர்ப்பாசனம்", "தண்ணீர்", "सिंचाई", "पानी", "ജലസേചനം", "ನೀರಾವರಿ", "నీటిపారుదల", "पाणी")) return "irrigation";
         if (containsAny(text, "soil", "ph", "nutrient", "மண்", "मिट्टी", "मृदा", "മണ്ണ്", "ಮಣ್ಣು", "నేల", "माती")) return "soil health";
         if (containsAny(text, "harvest", "storage", "store", "post-harvest", "அறுவடை", "भंडारण", "कटाई", "വിളവെടുപ്പ്", "ಕೊಯ್ಲು", "కోత", "कापणी")) return "harvest and storage";
+        if (containsAny(text, "coconut", "தேங்க", "नारियल", "തെങ്ങ", "ತೆಂಗ", "కొబ్బరి", "नारळ")) return "coconut care";
         return "crop and cultivation";
     }
 

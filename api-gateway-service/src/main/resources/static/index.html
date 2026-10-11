@@ -3233,7 +3233,7 @@
                 await loadDashboard();
             } catch (error) {
                 pending.remove();
-                addMessage(error.message + " " + t("Check the Gemini API key and Portal service availability."), "assistant");
+                addMessage(error.message, "assistant");
             } finally { $("sendChat").disabled = false; }
         });
 
