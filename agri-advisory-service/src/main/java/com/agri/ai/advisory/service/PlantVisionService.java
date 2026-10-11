@@ -39,7 +39,7 @@ public class PlantVisionService {
             RestTemplate restTemplate,
             ObjectMapper objectMapper,
             @Value("${GOOGLE_API_KEY:}") String apiKey,
-            @Value("${plant-vision.model:gemini-2.0-flash}") String model,
+            @Value("${plant-vision.model:gemini-3.8-flash}") String model,
             @Value("${plant-vision.api-url:https://generativelanguage.googleapis.com/v1beta}") String apiUrl) {
         this.restTemplate = restTemplate;
         this.objectMapper = objectMapper;

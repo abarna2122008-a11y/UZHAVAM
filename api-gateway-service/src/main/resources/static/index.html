@@ -141,8 +141,10 @@
         .bubble.user { align-self: flex-end; border-bottom-right-radius: 4px; background: var(--forest); color: white; }
         .bubble-label { display: block; margin-bottom: 4px; color: var(--leaf); font-size: .69rem; font-weight: 800; }
         .bubble.user .bubble-label { color: var(--lime); }
-        .source-list { display: grid; gap: 5px; margin-top: 9px; }
-        .source-list a { color: var(--leaf); font-size: .74rem; overflow-wrap: anywhere; }
+        .source-list { margin-top: 10px; color: var(--muted); font-size: .76rem; }
+        .source-list summary { cursor: pointer; color: var(--leaf); font-weight: 700; }
+        .source-list ul { display: grid; gap: 5px; margin: 8px 0 0; padding-left: 20px; }
+        .source-list li { overflow-wrap: anywhere; }
         .chat-form { display: grid; grid-template-columns: 125px 1fr auto; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
         .chat-form input { min-width: 0; }
         .chat-tools { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 7px; }
@@ -711,7 +713,7 @@
                 <div class="page-head"><div><div class="eyebrow">Practical, evidence-aware help</div><h1>Ask Uzhavam</h1><p class="subhead">Ask about crops, pests, weather, markets or schemes. Choose how you'd like to chat.</p></div></div>
                 <div class="chat-layout">
                     <article class="card chat-card">
-                        <div class="card-heading"><div><h2>Farm assistant</h2><p class="subhead">Replies follow your selected language.</p></div><span class="status-pill">AI assistant</span></div>
+                        <div class="card-heading"><div><h2>Farm assistant</h2><p class="subhead">Replies follow your selected language. Check whether Gemini AI is connected before asking.</p></div><span class="status-pill" id="assistantAiStatus" role="status" aria-live="polite">Checking AI…</span></div>
                         <div class="chat-messages" id="chatMessages"><div class="bubble assistant"><span class="bubble-label">UZHAVAM</span>Vanakkam! Ask me about your crops, farm tasks, weather or market resources. I’ll show the references used with my answer.</div></div>
                         <form id="chatForm">
                             <div class="chat-form">
@@ -1532,6 +1534,7 @@
             $("mobileMenu").setAttribute("aria-expanded", "false");
             window.scrollTo({top:0, behavior:"smooth"});
             if (page === "assistant") $("chatQuestion").focus();
+            if (page === "assistant") loadAssistantAiStatus();
             if (page === "plant-check") window.dispatchEvent(new Event("uzhavam:plant-check-open"));
             if (page === "reloop") loadReLoopPage().catch(error => notify(error.message, true));
             if (page === "safety") loadSafetyPage().catch(error => notify(error.message, true));
@@ -2282,18 +2285,39 @@
             bubble.appendChild(label);
             bubble.appendChild(document.createTextNode(text));
             if (sources?.length) {
-                const list = document.createElement("div");
+                const list = document.createElement("details");
                 list.className = "source-list";
+                const summary = document.createElement("summary");
+                summary.textContent = "Sources and limitations (" + sources.length + ")";
+                list.appendChild(summary);
+                const sourceItems = document.createElement("ul");
                 sources.forEach(source => {
-                    const link = document.createElement("span");
-                    link.textContent = source;
-                    list.appendChild(link);
+                    const item = document.createElement("li");
+                    item.textContent = source;
+                    sourceItems.appendChild(item);
                 });
+                list.appendChild(sourceItems);
                 bubble.appendChild(list);
             }
             $("chatMessages").appendChild(bubble);
             $("chatMessages").scrollTop = $("chatMessages").scrollHeight;
             return bubble;
+        }
+
+        async function loadAssistantAiStatus() {
+            const badge = $("assistantAiStatus");
+            if (!badge) return;
+            badge.textContent = "Checking AI…";
+            try {
+                const status = await api("/api/advisory/vision/status");
+                badge.textContent = status.configured ? "Gemini key set · test by asking" : "Local guide · Gemini not set";
+                badge.title = status.configured
+                    ? "A key value is configured. Provider access is confirmed only when an answer is generated."
+                    : "Using limited built-in guidance. Add GOOGLE_API_KEY to the root .env and restart Advisory to enable Gemini.";
+            } catch (error) {
+                badge.textContent = "AI status unavailable";
+                badge.title = error.message;
+            }
         }
 
         function setVoiceLanguage() {
@@ -3218,6 +3242,7 @@
             event.preventDefault();
             const query = $("chatQuestion").value.trim();
             if (!query) return;
+            loadAssistantAiStatus();
             $("chatQuestion").value = "";
             addMessage(query, "user");
             const pending = addMessage(t("Preparing a grounded answer…"), "assistant");

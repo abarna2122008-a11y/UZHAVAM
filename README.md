@@ -10,7 +10,7 @@ You will need Java 21, Maven, and Docker Desktop.
 
 1. Start Docker Desktop.
 2. Copy `.env.example` to `.env`.
-3. Add your Google AI Studio key as `GOOGLE_API_KEY` in `.env`. Set the gateway username and password there too.
+3. Add your Google AI Studio key as `GOOGLE_API_KEY` in the root `.env` file (not `.env.example`). Set the gateway username and password there too. Keep `.env` private; it is ignored by Git.
 4. Open a terminal in this folder and run:
 
    ```powershell
@@ -20,6 +20,8 @@ You will need Java 21, Maven, and Docker Desktop.
 5. Go to [http://localhost:8080](http://localhost:8080) and sign in using the gateway credentials from `.env`.
 
 To stop the services, press `Ctrl+C` in the terminal. You can also run `docker compose down`.
+
+If chat shows **“Local guide · Gemini not set”**, check that the key is in the root `.env`, then restart the stack with `docker compose up --build`. The default Gemini model is set in `.env.example`; override `GEMINI_MODEL` in `.env` only if your Google AI Studio account supports a different model.
 
 ## What is in the project?
 
