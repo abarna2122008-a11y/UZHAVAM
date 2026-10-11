@@ -21,7 +21,7 @@ You will need Java 21, Maven, and Docker Desktop.
 
 To stop the services, press `Ctrl+C` in the terminal. You can also run `docker compose down`.
 
-If chat shows **“Local guide · Gemini not set”**, check that the key is in the root `.env`, then restart the stack with `docker compose up --build`. The default Gemini model is set in `.env.example`; override `GEMINI_MODEL` in `.env` only if your Google AI Studio account supports a different model.
+If chat shows **“Local guide · Gemini not set”**, check that the key is in the root `.env` and restart the Advisory service. Docker Compose reads this file automatically; local Spring Boot runs also import the root `.env` when launched from the project root or service folder. The default Gemini model is `gemini-3.8-flash`; override `GEMINI_MODEL` only if your Google AI Studio account supports another model. Never place a real key in `.env.example`, commit it, or paste it into a chat or screenshot.
 
 ## What is in the project?
 
