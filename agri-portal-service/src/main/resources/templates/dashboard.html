@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Fieldwise | Project dashboard</title>
+    <style>
+        :root {
+            --green: #246b45;
+            --green-dark: #174b31;
+            --ink: #26352b;
+            --muted: #68766d;
+            --line: #e1e9e2;
+            --paper: #ffffff;
+            --wash: #f3f7f1;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            background: var(--wash);
+            color: var(--ink);
+            font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+        }
+        header {
+            padding: 17px max(5vw, 22px);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            background: var(--paper);
+            border-bottom: 1px solid var(--line);
+            color: var(--green-dark);
+            font-weight: 750;
+        }
+        header a { color: var(--green); text-decoration: none; font-weight: 650; }
+        main { width: min(1120px, 92%); margin: 34px auto 60px; }
+        h1 { margin: 0 0 7px; font-size: clamp(1.8rem, 4vw, 2.35rem); line-height: 1.2; }
+        h2 { margin: 0 0 16px; font-size: 1.08rem; }
+        p { color: var(--muted); margin: 0; }
+        .topline { display: flex; justify-content: space-between; align-items: end; gap: 18px; }
+        .button {
+            display: inline-block;
+            border-radius: 8px;
+            padding: 10px 15px;
+            background: var(--green);
+            color: #fff;
+            text-decoration: none;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .grid { display: grid; gap: 16px; }
+        .metrics { grid-template-columns: repeat(4, 1fr); margin-top: 24px; }
+        .analytics { grid-template-columns: repeat(3, 1fr); margin-top: 16px; }
+        .card {
+            padding: 21px;
+            border: 1px solid var(--line);
+            border-radius: 13px;
+            background: var(--paper);
+            box-shadow: 0 8px 26px rgb(36 69 45 / 4%);
+        }
+        .metric-label { color: var(--muted); font-size: .88rem; }
+        .metric-value { margin-top: 5px; font-size: 2rem; line-height: 1.15; font-weight: 760; color: var(--green-dark); }
+        .bar-row { margin: 15px 0 0; }
+        .bar-label { display: flex; justify-content: space-between; gap: 12px; font-size: .9rem; }
+        .bar-track { height: 8px; margin-top: 6px; border-radius: 99px; background: #edf2ed; overflow: hidden; }
+        .bar-fill { height: 100%; border-radius: inherit; background: #51a372; }
+        .empty { padding: 13px 0 0; color: var(--muted); font-size: .92rem; }
+        .rubric { margin-top: 18px; }
+        .rubric-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+        .rubric-item { padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: #fbfdfb; }
+        .rubric-item strong { display: block; margin-bottom: 5px; color: var(--green-dark); }
+        .status { display: inline-block; margin-top: 9px; color: var(--green); font-size: .8rem; font-weight: 750; }
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 720px; }
+        th, td { padding: 11px 9px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+        th { color: var(--muted); font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; }
+        td { font-size: .88rem; }
+        .history { margin-top: 18px; }
+        @media (max-width: 900px) {
+            .rubric-grid { grid-template-columns: repeat(2, 1fr); }
+            .metrics { grid-template-columns: repeat(2, 1fr); }
+            .analytics { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 560px) {
+            .topline { align-items: start; flex-direction: column; }
+            .metrics, .rubric-grid { grid-template-columns: 1fr 1fr; }
+            header { align-items: start; flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+<header>
+    <span>🌱 Fieldwise <span style="color: #68766d">/ Project dashboard</span></span>
+    <a href="/">← Back to farmer chat</a>
+</header>
+<main>
+    <div class="topline">
+        <div>
+            <h1>Project overview</h1>
+            <p>Live counts from saved interactions in the portal database.</p>
+        </div>
+        <a class="button" href="/">＋ Ask a question</a>
+    </div>
+
+    <section class="grid metrics" aria-label="Usage metrics">
+        <article class="card">
+            <div class="metric-label">Answered queries</div>
+            <div class="metric-value" th:text="${analytics.totalQueries}">0</div>
+        </article>
+        <article class="card">
+            <div class="metric-label">Query categories</div>
+            <div class="metric-value" th:text="${analytics.categoryCount}">0</div>
+        </article>
+        <article class="card">
+            <div class="metric-label">Languages used</div>
+            <div class="metric-value" th:text="${analytics.languageCount}">0</div>
+        </article>
+        <article class="card">
+            <div class="metric-label">Districts reached</div>
+            <div class="metric-value" th:text="${analytics.districtCount}">0</div>
+        </article>
+    </section>
+
+    <section class="grid analytics" aria-label="Interaction breakdowns">
+        <article class="card">
+            <h2>Questions by category</h2>
+            <p class="empty" th:if="${#lists.isEmpty(analytics.categories)}">No answered questions yet.</p>
+            <div class="bar-row" th:each="item : ${analytics.categories}">
+                <div class="bar-label"><span th:text="${item.label}"></span><strong th:text="${item.count}"></strong></div>
+                <div class="bar-track"><div class="bar-fill" th:style="'width:' + ${item.percentage} + '%'"></div></div>
+            </div>
+        </article>
+        <article class="card">
+            <h2>Languages used</h2>
+            <p class="empty" th:if="${#lists.isEmpty(analytics.languages)}">Language usage appears after the first answer.</p>
+            <div class="bar-row" th:each="item : ${analytics.languages}">
+                <div class="bar-label"><span th:text="${item.label}"></span><strong th:text="${item.count}"></strong></div>
+                <div class="bar-track"><div class="bar-fill" th:style="'width:' + ${item.percentage} + '%'"></div></div>
+            </div>
+        </article>
+        <article class="card">
+            <h2>Top districts</h2>
+            <p class="empty" th:if="${#lists.isEmpty(analytics.districts)}">District activity appears after the first answer.</p>
+            <div class="bar-row" th:each="item : ${analytics.districts}">
+                <div class="bar-label"><span th:text="${item.label}"></span><strong th:text="${item.count}"></strong></div>
+                <div class="bar-track"><div class="bar-fill" th:style="'width:' + ${item.percentage} + '%'"></div></div>
+            </div>
+        </article>
+    </section>
+
+    <section class="card rubric">
+        <h2>Phase 1 evaluation areas</h2>
+        <div class="rubric-grid">
+            <div class="rubric-item">
+                <strong>Spring Boot</strong>
+                <p>Java 21 applications, MVC, REST, JPA, H2.</p>
+                <span class="status">IMPLEMENTED</span>
+            </div>
+            <div class="rubric-item">
+                <strong>Microservices</strong>
+                <p>Portal and advisory services communicate over REST.</p>
+                <span class="status">IMPLEMENTED</span>
+            </div>
+            <div class="rubric-item">
+                <strong>End-to-end flow</strong>
+                <p>Question → language/category → retrieval → answer → saved history.</p>
+                <span class="status">IMPLEMENTED</span>
+            </div>
+            <div class="rubric-item">
+                <strong>Basic AI & analytics</strong>
+                <p>Ollama grounded generation, source display, usage breakdowns.</p>
+                <span class="status">POC</span>
+            </div>
+            <div class="rubric-item">
+                <strong>UI & dashboard</strong>
+                <p>Farmer chat, evidence references, history, live usage metrics.</p>
+                <span class="status">IMPLEMENTED</span>
+            </div>
+        </div>
+        <p style="margin-top: 13px; font-size: .85rem">Rubric areas are shown without score values because the official mark weights were not provided.</p>
+    </section>
+
+    <section class="card history">
+        <h2>Recent interactions</h2>
+        <p class="empty" th:if="${#lists.isEmpty(history)}">Submit an answered question to populate the dashboard.</p>
+        <div class="table-wrap" th:unless="${#lists.isEmpty(history)}">
+            <table>
+                <thead>
+                <tr><th>Time</th><th>District</th><th>Question</th><th>Category</th><th>Language</th><th>Answer</th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="item : ${history}">
+                    <td th:text="${#temporals.format(item.createdTime, 'dd MMM yyyy, HH:mm')}"></td>
+                    <td th:text="${item.district}"></td>
+                    <td th:text="${item.userQuery}"></td>
+                    <td th:text="${item.category}"></td>
+                    <td th:text="${item.detectedLanguage}"></td>
+                    <td th:text="${item.aiResponse}"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+</body>
+</html>

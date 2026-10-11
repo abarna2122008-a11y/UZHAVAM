@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Fieldwise | Enterprise API demo</title>
+    <style>
+        :root {
+            --green: #246b45;
+            --green-dark: #174b31;
+            --ink: #26352b;
+            --muted: #68766d;
+            --line: #dfe8e1;
+            --paper: #fff;
+            --wash: #f2f6f1;
+            --blue: #e9f2f8;
+        }
+        * { box-sizing: border-box; }
+        body { margin: 0; color: var(--ink); background: var(--wash); font: 15px/1.5 system-ui, sans-serif; }
+        header {
+            padding: 16px max(5vw, 20px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            background: var(--paper);
+            border-bottom: 1px solid var(--line);
+        }
+        .brand { color: var(--green-dark); font-size: 1.05rem; font-weight: 800; }
+        .secure { color: var(--muted); font-size: .85rem; }
+        main { width: min(1080px, 93%); margin: 34px auto 60px; }
+        h1 { margin: 0 0 7px; font-size: clamp(1.8rem, 4vw, 2.4rem); }
+        h2 { margin: 0 0 12px; font-size: 1.12rem; }
+        p { margin: 0; color: var(--muted); }
+        .layout { display: grid; grid-template-columns: minmax(260px, .8fr) minmax(0, 1.4fr); gap: 18px; margin-top: 22px; }
+        .card { padding: 21px; border: 1px solid var(--line); border-radius: 13px; background: var(--paper); box-shadow: 0 8px 26px #24452d0a; }
+        label { display: block; margin: 13px 0 5px; font-size: .88rem; font-weight: 650; }
+        input, select {
+            width: 100%; padding: 10px 11px; border: 1px solid #cbd8ce; border-radius: 7px;
+            background: #fff; color: var(--ink); font: inherit;
+        }
+        button {
+            margin: 12px 8px 0 0; padding: 10px 13px; border: 0; border-radius: 7px;
+            background: var(--green); color: white; font: inherit; font-weight: 700; cursor: pointer;
+        }
+        button.secondary { background: #e6f0e8; color: var(--green-dark); }
+        button:hover { filter: brightness(.96); }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+        .service-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 15px; }
+        .service-list span { padding: 5px 9px; border-radius: 99px; background: #edf4ee; color: var(--green-dark); font-size: .8rem; }
+        pre {
+            min-height: 280px; max-height: 470px; overflow: auto; margin: 0; padding: 16px;
+            border-radius: 9px; background: #17251d; color: #e2f4e6; font: 13px/1.55 Consolas, monospace;
+            white-space: pre-wrap; overflow-wrap: anywhere;
+        }
+        .response-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; }
+        .status { color: var(--muted); font-size: .82rem; }
+        .note { margin-top: 12px; padding: 11px 12px; border-radius: 8px; background: var(--blue); font-size: .86rem; }
+        @media (max-width: 760px) {
+            .layout { grid-template-columns: 1fr; }
+            header { align-items: start; flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+<header>
+    <span class="brand">🌱 Fieldwise <span class="secure">/ API demo console</span></span>
+    <span class="secure">Gateway protected APIs use HTTP Basic authentication</span>
+</header>
+<main>
+    <h1>Enterprise backend demo</h1>
+    <p>Try the authenticated hardware and advisory APIs through the gateway. Outputs appear in the response panel.</p>
+    <div class="layout">
+        <section class="card">
+            <h2>Gateway sign-in</h2>
+            <p>Credentials are kept only in this page while it is open.</p>
+            <label for="username">Username</label>
+            <input id="username" value="farmer" autocomplete="username">
+            <label for="password">Password</label>
+            <input id="password" type="password" placeholder="Use GATEWAY_PASSWORD from .env" autocomplete="current-password">
+
+            <h2 style="margin-top: 22px">Send ESP32 telemetry</h2>
+            <div class="form-grid">
+                <div><label for="sensorId">Sensor ID</label><input id="sensorId" value="ESP32-Node1"></div>
+                <div><label for="moisture">Soil moisture (%)</label><input id="moisture" type="number" min="0" max="100" value="42"></div>
+                <div><label for="nitrogen">Nitrogen</label><select id="nitrogen"><option>low</option><option>medium</option><option>high</option></select></div>
+                <div><label for="location">Location</label><input id="location" value="Thanjavur"></div>
+            </div>
+            <button id="sendTelemetry">Send telemetry</button>
+            <button class="secondary" id="getContext">Read field context</button>
+
+            <h2 style="margin-top: 22px">Send YOLO leaf detection</h2>
+            <div class="form-grid">
+                <div><label for="imageId">Image ID</label><input id="imageId" value="leaf-sample-01"></div>
+                <div><label for="crop">Crop</label><input id="crop" value="rice"></div>
+                <div><label for="detection">Detection label</label><input id="detection" value="leaf-blast-suspected"></div>
+                <div><label for="confidence">Model confidence</label><input id="confidence" type="number" min="0" max="1" step="0.01" value="0.87"></div>
+            </div>
+            <button class="secondary" id="sendVision">Send sample vision metadata</button>
+
+            <h2 style="margin-top: 22px">Ask the AI advisor</h2>
+            <label for="query">Agricultural question</label>
+            <input id="query" value="How should I manage rice pests?">
+            <label for="language">Reply language</label>
+            <select id="language">
+                <option>English</option><option>Tamil</option><option>Hindi</option>
+                <option>Malayalam</option><option>Kannada</option><option>Telugu</option><option>Marathi</option>
+            </select>
+            <button id="askAdvice">Get grounded advice</button>
+            <button class="secondary" id="getHistory">Read saved interaction history</button>
+            <div class="note">AI-generated advice needs a valid GOOGLE_API_KEY in `.env`. Crop notes and weather in this demo are fixtures, not official live data.</div>
+        </section>
+
+        <section class="card">
+            <div class="response-head">
+                <h2 style="margin:0">Service response</h2>
+                <span class="status" id="status" role="status" aria-live="polite">Ready</span>
+            </div>
+            <pre id="output">Choose an action to see the JSON response from the services.</pre>
+            <div class="service-list">
+                <span>Gateway :8080</span><span>Portal :8081</span>
+                <span>Advisory :8082</span><span>Hardware :8083</span><span>PostgreSQL :5432</span>
+            </div>
+        </section>
+    </div>
+</main>
+<script>
+    (() => {
+        const output = document.getElementById("output");
+        const status = document.getElementById("status");
+        const value = id => document.getElementById(id).value.trim();
+
+        async function callApi(path, method, body) {
+            const username = value("username");
+            const password = value("password");
+            if (!username || !password) {
+                throw new Error("Enter the gateway username and password from your .env file.");
+            }
+            status.textContent = "Calling " + path + "…";
+            const options = {
+                method,
+                headers: {
+                    Authorization: "Basic " + btoa(unescape(encodeURIComponent(username + ":" + password))),
+                    Accept: "application/json"
+                }
+            };
+            if (body !== undefined) {
+                options.headers["Content-Type"] = "application/json";
+                options.body = JSON.stringify(body);
+            }
+            const response = await fetch(path, options);
+            const text = await response.text();
+            let payload;
+            try { payload = text ? JSON.parse(text) : { status: response.status }; }
+            catch { payload = { response: text }; }
+            output.textContent = JSON.stringify(payload, null, 2);
+            status.textContent = response.ok ? "HTTP " + response.status : "HTTP " + response.status + " — request failed";
+            if (!response.ok) {
+                throw new Error(payload.message || payload.error || "The service returned HTTP " + response.status + ".");
+            }
+        }
+
+        function run(action) {
+            action().catch(error => {
+                status.textContent = "Request failed";
+                if (!output.textContent.includes("timestamp") && !output.textContent.includes("receivedAt")) {
+                    output.textContent = error.message;
+                }
+            });
+        }
+
+        document.getElementById("sendTelemetry").addEventListener("click", () => run(() => callApi(
+            "/api/hardware/telemetry", "POST", {
+                sensorId: value("sensorId"),
+                soilMoisture: Number(value("moisture")),
+                nitrogen: value("nitrogen"),
+                location: value("location")
+            })));
+        document.getElementById("getContext").addEventListener("click", () => run(() =>
+            callApi("/api/hardware/context?location=" + encodeURIComponent(value("location")), "GET")));
+        document.getElementById("sendVision").addEventListener("click", () => run(() =>
+            callApi("/api/hardware/vision", "POST", {
+                imageId: value("imageId"),
+                crop: value("crop"),
+                location: value("location"),
+                detections: [{
+                    label: value("detection"),
+                    confidence: Number(value("confidence")),
+                    x: 0.22,
+                    y: 0.18,
+                    width: 0.36,
+                    height: 0.29
+                }]
+            })));
+        document.getElementById("askAdvice").addEventListener("click", () => run(() =>
+            callApi("/api/advisory/process", "POST", {
+                query: value("query"),
+                language: value("language"),
+                location: value("location")
+            })));
+        document.getElementById("getHistory").addEventListener("click", () => run(() =>
+            callApi("/api/portal/history", "GET")));
+    })();
+</script>
+</body>
+</html>

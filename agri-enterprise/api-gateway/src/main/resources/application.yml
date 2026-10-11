@@ -1,0 +1,26 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: portal-service
+          uri: ${PORTAL_SERVICE_URL:http://agri-portal-service:8081}
+          predicates:
+            - Path=/api/portal/**
+        - id: advisory-service
+          uri: ${ADVISORY_SERVICE_URL:http://agri-advisory-service:8082}
+          predicates:
+            - Path=/api/advisory/**
+        - id: farmer-workspace
+          uri: ${FARMER_WORKSPACE_URL:http://farmer-workspace-service:8083}
+          predicates:
+            - Path=/api/farmers/**
+
+app:
+  security:
+    username: ${GATEWAY_USER:farmer}
+    password: ${GATEWAY_PASSWORD:change-this-dev-password}

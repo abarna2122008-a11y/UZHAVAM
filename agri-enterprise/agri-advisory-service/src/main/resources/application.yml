@@ -1,0 +1,19 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: agri-advisory-service
+  ai:
+    openai:
+      # Gemini's OpenAI-compatible endpoint lets the Spring AI 1.0 milestone run with Boot 3.3.
+      base-url: ${GEMINI_OPENAI_BASE_URL:https://generativelanguage.googleapis.com/v1beta/openai}
+      api-key: ${GOOGLE_API_KEY:local-dev-key-not-configured}
+      chat:
+        options:
+          model: ${GEMINI_MODEL:gemini-2.0-flash}
+          temperature: 0.2
+
+services:
+  farmer-workspace-url: ${FARMER_WORKSPACE_URL:http://localhost:8083}
+  portal-url: ${PORTAL_SERVICE_URL:http://localhost:8081}
